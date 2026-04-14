@@ -2,10 +2,14 @@ services:
   llama_cpp:
     image: ghcr.io/ggml-org/llama.cpp:server-cuda
     container_name: llama_cpp
+    gpus: all
     ports:
       - "8000:8000"
     volumes:
       - ./quenmodel:/models:ro
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     command: |
       -m /models/Qwen3.5-2B-Q8_0.gguf
       --host 0.0.0.0
