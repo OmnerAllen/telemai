@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["prometheus:9090"]
+
+  - job_name: llama_cpp
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["llama_cpp:8000"]
+
+  - job_name: nvidia_gpu
+    static_configs:
+      - targets: ["dcgm-exporter:9400"]

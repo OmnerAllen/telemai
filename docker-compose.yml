@@ -15,3 +15,72 @@ services:
       --host 0.0.0.0
       --port 8000
       --n-gpu-layers 99
+      --metrics
+
+
+  # rewrite open webui to also pull from llamacpp for its backend
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:cuda
+    container_name: open-webui
+    volumes:
+      - open-webui:/app/backend/data
+    depends_on:
+      - llama_cpp
+    ports:
+      - ${OPEN_WEBUI_PORT-3000}:8080
+    environment:
+      - 'OLLAMA_BASE_URL=http://llama_cpp:8000'
+    
+
+
+    # run own grafana
+    # run own prometheus that scrapes the exporter of everyone's machines
+
+  grafana:
+    image: grafana/grafana:12.4
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+  prometheus:
+    image: prom/prometheus:v3.11.2
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  dcgm-exporter:
+    image: nvidia/dcgm-exporter:4.4.1-4.6.0-ubuntu22.04
+    container_name: dcgm-exporter
+    gpus: all
+    ports:
+      - "9400:9400"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+  loki:
+    image: grafana/loki:3.2.1
+    container_name: loki
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+
+  promtail:
+    image: grafana/promtail:3.2.1
+    container_name: promtail
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+    depends_on:
+      - loki
+
+volumes:
+  open-webui:
+  grafana_data:
