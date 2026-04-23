@@ -20,14 +20,14 @@ services:
 
   # rewrite open webui to also pull from llamacpp for its backend
   open-webui:
-    image: ghcr.io/open-webui/open-webui:cuda
+    image: ghcr.io/open-webui/open-webui:latest
     container_name: open-webui
     volumes:
       - open-webui:/app/backend/data
     depends_on:
       - llama_cpp
     ports:
-      - ${OPEN_WEBUI_PORT-3000}:8080
+      - ${OPEN_WEBUI_PORT-3001}:8080
     environment:
       - 'OLLAMA_BASE_URL=http://llama_cpp:8000'
     
@@ -43,6 +43,12 @@ services:
       - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./dcgm_grafana_dash.json:/var/lib/grafana/dashboards/dcgm_grafana_dash.json:ro
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
 
   prometheus:
     image: prom/prometheus:v3.11.2
@@ -62,24 +68,7 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
-  loki:
-    image: grafana/loki:3.2.1
-    container_name: loki
-    command: -config.file=/etc/loki/local-config.yaml
-    ports:
-      - "3100:3100"
 
-  promtail:
-    image: grafana/promtail:3.2.1
-    container_name: promtail
-    command: -config.file=/etc/promtail/config.yml
-    volumes:
-      - /var/log:/var/log:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./promtail-config.yml:/etc/promtail/config.yml:ro
-    depends_on:
-      - loki
 
 volumes:
   open-webui:
